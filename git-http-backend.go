@@ -119,9 +119,20 @@ func serviceRpc(hr HandlerReq) {
 	w.Header().Set("Content-Type", fmt.Sprintf("application/x-git-%s-result", rpc))
 	w.WriteHeader(http.StatusOK)
 
+	env := []string{
+		"SSH_USER=git-http-backend",
+	}
+
+	user, _, authok := r.BasicAuth()
+	if authok {
+		env = append(env, fmt.Sprintf("NAME=%s", user))
+		env = append(env, fmt.Sprintf("SSH_NAME=%s", user))
+	}
+
 	args := []string{rpc, "--stateless-rpc", dir}
 	cmd := exec.Command(config.GitBinPath, args...)
 	cmd.Dir = dir
+	cmd.Env = env
 	in, err := cmd.StdinPipe()
 	if err != nil {
 		log.Print(err)
